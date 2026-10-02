@@ -4,7 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 import { VoteFlow } from './vote-flow';
 import { elections } from '@/test/fixtures';
-import { clearIdentityExport, createVotingIdentity, saveIdentityExport } from '@/lib/vote-identity';
+import { clearElectionIdentities, createVotingIdentity, saveIdentityExport } from '@/lib/vote-identity';
 import { jsonResponse, renderWithI18n } from '@/test/render';
 
 const fetchMock = vi.fn();
@@ -20,7 +20,7 @@ describe('VoteFlow', () => {
   beforeEach(() => {
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
-    for (const id of ['1', '2', '3', '9']) clearIdentityExport(id);
+    for (const id of ['1', '2', '3', '9']) clearElectionIdentities(id);
   });
 
   afterEach(() => {
@@ -69,6 +69,55 @@ describe('VoteFlow', () => {
     renderWithI18n(<VoteFlow electionId="1" />);
 
     expect(await screen.findByRole('heading', { name: 'Registration is closed' })).toBeInTheDocument();
+  });
+
+  it('parks the current voter and starts a blank journey for the next', async () => {
+    const created = createVotingIdentity();
+    saveIdentityExport('2', created.identityExport);
+    fetchMock.mockResolvedValue(jsonResponse(registrationElection));
+
+    renderWithI18n(<VoteFlow electionId="2" />);
+
+    expect(await screen.findByRole('heading', { name: 'Voters on this device' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Register a different voter' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, start over' }));
+
+    // Parked voter is offered back; the wizard restarts at KYC.
+    expect(await screen.findByRole('button', { name: 'Use this voter' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '1 · Check eligibility' })).toBeInTheDocument();
+  });
+
+  it('brings a parked voter back without losing them', async () => {
+    const created = createVotingIdentity();
+    saveIdentityExport('2', created.identityExport);
+    fetchMock.mockImplementation((url: unknown) => {
+      const target = String(url);
+      if (target.includes('/kyc/start')) {
+        return Promise.resolve(jsonResponse({ sessionId: 's-1', redirectUrl: '/mock' }));
+      }
+      if (target.includes('/kyc/complete')) {
+        return Promise.resolve(jsonResponse({ kycToken: 'tok-1' }));
+      }
+      if (target.includes('/register')) {
+        return Promise.resolve(jsonResponse({ txHash: `0x${'ab'.repeat(32)}` }));
+      }
+      return Promise.resolve(jsonResponse(registrationElection));
+    });
+
+    renderWithI18n(<VoteFlow electionId="2" />);
+
+    // Complete a registration, park it via start-over, then resume it.
+    await userEvent.type(await screen.findByLabelText('Mock EPIC'), 'WB/12/345/678901');
+    await userEvent.click(screen.getByRole('button', { name: 'Verify identity' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Create voting identity' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Register anonymously' }));
+    await screen.findByText('Registered. Come back to this page once the Voting phase opens.');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Register a different voter' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, start over' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Use this voter' }));
+
+    expect(screen.getByRole('heading', { name: '1 · Check eligibility' })).toBeInTheDocument();
   });
   it('explains registration-phase elections and hides the ballot', async () => {
     fetchMock.mockResolvedValue(jsonResponse(registrationElection));

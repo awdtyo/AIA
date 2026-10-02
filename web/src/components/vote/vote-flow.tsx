@@ -8,9 +8,21 @@ import { Link } from '@/i18n/navigation';
 import { api, ApiError } from '@/lib/api';
 import { Phase, isVotingOpen, phaseMessageKey } from '@/lib/phases';
 import { queryKeys } from '@/lib/query-keys';
-import { loadStoredCommitment } from '@/lib/vote-identity';
+import {
+  archiveIdentityExport,
+  listArchivedExports,
+  loadStoredCommitment,
+  restoreArchivedExport,
+  type ArchivedVoter
+} from '@/lib/vote-identity';
 import { BallotStep, type CastResult } from './ballot-step';
-import { IdentityStep, KycStep, RegisterStep, type RegisterResult } from './vote-steps';
+import {
+  IdentityStep,
+  KycStep,
+  RegisterStep,
+  VoterSwitcher,
+  type RegisterResult
+} from './vote-steps';
 
 /**
  * Voting page flow for one election, guarded by phase.
@@ -39,10 +51,38 @@ export function VoteFlow({ electionId }: { electionId: string }) {
   // server rendering and the first client paint agree.
   const [mounted, setMounted] = useState(false);
   const [storedCommitment, setStoredCommitment] = useState<string | null>(null);
+  const [archived, setArchived] = useState<ArchivedVoter[]>([]);
   useEffect(() => {
     setMounted(true);
     setStoredCommitment(loadStoredCommitment(electionId));
+    setArchived(listArchivedExports(electionId));
   }, [electionId]);
+
+  function refreshDeviceIdentities(): void {
+    setStoredCommitment(loadStoredCommitment(electionId));
+    setArchived(listArchivedExports(electionId));
+  }
+
+  /** Park the active voter so another family member can use this browser. */
+  function handleStartOver(): void {
+    archiveIdentityExport(electionId);
+    setKycToken(null);
+    setCommitment(null);
+    setRegisterResult(null);
+    setCastResult(null);
+    refreshDeviceIdentities();
+  }
+
+  /** Bring a parked voter back as the active one (fresh KYC still required). */
+  function handleUseArchived(key: string): void {
+    const restored = restoreArchivedExport(electionId, key);
+    if (!restored) return;
+    setCommitment(restored);
+    setKycToken(null);
+    setRegisterResult(null);
+    setCastResult(null);
+    refreshDeviceIdentities();
+  }
 
   function handleRegisterDone(result: RegisterResult): void {
     setRegisterResult(result);
@@ -114,9 +154,24 @@ export function VoteFlow({ electionId }: { electionId: string }) {
       {mounted && isVotingOpen(election.phase) && storedCommitment && !castResult ? (
         <section aria-labelledby="ballot-pick-section" className="card mt-6">
           <BallotStep
+            key={storedCommitment}
             electionId={election.id}
             candidates={election.candidates}
             onVoted={handleVoted}
+          />
+        </section>
+      ) : null}
+
+      {mounted &&
+      (isVotingOpen(election.phase) || election.phase === Phase.Registration) &&
+      !castResult &&
+      (storedCommitment || archived.length > 0) ? (
+        <section className="card mt-6">
+          <VoterSwitcher
+            activeCommitment={storedCommitment}
+            archived={archived}
+            onUseArchived={handleUseArchived}
+            onStartOver={handleStartOver}
           />
         </section>
       ) : null}

@@ -9,7 +9,9 @@ import {
   importVotingIdentity,
   isValidMockEpic,
   loadIdentityExport,
-  saveIdentityExport
+  saveIdentityExport,
+  shortCommitment,
+  type ArchivedVoter
 } from '@/lib/vote-identity';
 
 export interface RegisterResult {
@@ -157,6 +159,85 @@ export function IdentityStep({
   );
 }
 
+/**
+ * Shared-device voter switcher. A household may vote several family members
+ * from one browser: each keeps their own anonymous identity, parked here
+ * while another is active. Switching never deletes — the outgoing voter is
+ * archived first by the parent.
+ */
+export function VoterSwitcher({
+  activeCommitment,
+  archived,
+  onUseArchived,
+  onStartOver
+}: {
+  activeCommitment: string | null;
+  archived: ArchivedVoter[];
+  onUseArchived: (key: string) => void;
+  onStartOver: () => void;
+}) {
+  const t = useTranslations();
+  const [confirming, setConfirming] = useState(false);
+
+  if (!activeCommitment && archived.length === 0) return null;
+
+  return (
+    <div aria-labelledby="voter-switcher-heading" className="rounded-md border border-navy-200 p-3">
+      <h3 id="voter-switcher-heading" className="text-base font-bold text-navy-900">
+        {t('vote.voterTitle')}
+      </h3>
+      {activeCommitment ? (
+        <p className="mt-1 text-sm text-ink">
+          {t('vote.currentVoter')}:{' '}
+          <code className="break-all font-mono" title={activeCommitment}>
+            {shortCommitment(activeCommitment)}
+          </code>
+        </p>
+      ) : null}
+      {archived.length > 0 ? (
+        <ul className="mt-2 space-y-2">
+          {archived.map((entry) => (
+            <li key={entry.key} className="flex flex-wrap items-center gap-2 text-sm">
+              <code
+                className="break-all font-mono text-ink-muted"
+                title={entry.commitment ?? entry.key}
+              >
+                {entry.commitment ? shortCommitment(entry.commitment) : '…'}
+              </code>
+              <button type="button" className="btn-secondary" onClick={() => onUseArchived(entry.key)}>
+                {t('vote.useVoter')}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {!confirming ? (
+        <button type="button" className="btn-secondary mt-3" onClick={() => setConfirming(true)}>
+          {t('vote.startOver')}
+        </button>
+      ) : (
+        <div className="mt-3">
+          <p className="text-sm text-ink">{t('vote.startOverConfirm')}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                setConfirming(false);
+                onStartOver();
+              }}
+            >
+              {t('vote.startOverYes')}
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => setConfirming(false)}>
+              {t('vote.startOverNo')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 /**
  * Step 3 — anonymous registration. Sends only the kycToken, electionId and
  * identity commitment; the backend stores just an eligibility hash.

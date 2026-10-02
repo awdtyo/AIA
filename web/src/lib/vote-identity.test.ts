@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  archiveIdentityExport,
+  clearElectionIdentities,
   clearIdentityExport,
   createVotingIdentity,
   importVotingIdentity,
   isValidMockEpic,
+  listArchivedExports,
   loadIdentityExport,
   loadStoredCommitment,
-  saveIdentityExport
+  MAX_ARCHIVED_VOTERS,
+  restoreArchivedExport,
+  saveIdentityExport,
+  shortCommitment
 } from './vote-identity';
 
 describe('isValidMockEpic', () => {
@@ -46,5 +52,45 @@ describe('voting identity storage', () => {
     saveIdentityExport('44', createVotingIdentity().identityExport);
     clearIdentityExport('44');
     expect(loadIdentityExport('44')).toBeNull();
+  });
+});
+
+describe('shared-device voter archive', () => {
+  it('parks the active voter and restores it by key', () => {
+    clearElectionIdentities('50');
+    const created = createVotingIdentity();
+    saveIdentityExport('50', created.identityExport);
+
+    const key = archiveIdentityExport('50');
+    expect(key).toMatch(/archived/);
+    expect(loadIdentityExport('50')).toBeNull();
+
+    const archived = listArchivedExports('50');
+    expect(archived).toHaveLength(1);
+    expect(archived[0]?.commitment).toBe(created.commitment);
+
+    expect(restoreArchivedExport('50', archived[0]?.key ?? '')).toBe(created.commitment);
+    expect(loadIdentityExport('50')).toBe(created.identityExport);
+    expect(listArchivedExports('50')).toHaveLength(0);
+  });
+
+  it('returns null when there is nothing to archive or restore', () => {
+    clearElectionIdentities('51');
+    expect(archiveIdentityExport('51')).toBeNull();
+    expect(restoreArchivedExport('51', 'no-such-key')).toBeNull();
+  });
+
+  it('caps the archive so a kiosk cannot grow storage unboundedly', () => {
+    clearElectionIdentities('52');
+    for (let i = 0; i < MAX_ARCHIVED_VOTERS + 3; i++) {
+      saveIdentityExport('52', createVotingIdentity().identityExport);
+      archiveIdentityExport('52');
+    }
+    expect(listArchivedExports('52')).toHaveLength(MAX_ARCHIVED_VOTERS);
+  });
+
+  it('shortens commitments for display without losing them', () => {
+    expect(shortCommitment('123456789012345')).toBe('123456…2345');
+    expect(shortCommitment('short')).toBe('short');
   });
 });

@@ -101,3 +101,88 @@ export function loadStoredCommitment(electionId: string): string | null {
 export function clearIdentityExport(electionId: string): void {
   storage()?.removeItem(`${STORAGE_PREFIX}${electionId}`);
 }
+
+/** Maximum archived voters kept per election on a shared device. */
+export const MAX_ARCHIVED_VOTERS = 8;
+
+export interface ArchivedVoter {
+  key: string;
+  identityExport: string;
+  savedAt: number;
+  commitment: string | null;
+}
+
+let archiveSeq = 0;
+
+function archivePrefix(electionId: string): string {
+  return `${STORAGE_PREFIX}${electionId}:archived:`;
+}
+
+/**
+ * Shared-device support: parks the active voter so another family member can
+ * register on the same browser. The archived export stays on this device
+ * only. Returns the archive key, or null when no voter is active.
+ */
+export function archiveIdentityExport(electionId: string): string | null {
+  const store = storage();
+  const active = loadIdentityExport(electionId);
+  if (!store || !active) return null;
+  const key = `${archivePrefix(electionId)}${Date.now()}-${archiveSeq++}`;
+  store.setItem(key, active);
+  store.removeItem(`${STORAGE_PREFIX}${electionId}`);
+  // Evict oldest beyond the cap so a kiosk cannot fill storage unboundedly.
+  const overflow = listArchivedExports(electionId).slice(MAX_ARCHIVED_VOTERS);
+  for (const entry of overflow) store.removeItem(entry.key);
+  return key;
+}
+
+export function listArchivedExports(electionId: string): ArchivedVoter[] {
+  const store = storage();
+  if (!store) return [];
+  const prefix = archivePrefix(electionId);
+  const out: ArchivedVoter[] = [];
+  for (let i = 0; i < store.length; i++) {
+    const key = store.key(i);
+    if (!key || !key.startsWith(prefix)) continue;
+    const identityExport = store.getItem(key);
+    if (!identityExport) continue;
+    const [timestamp = ''] = key.slice(prefix.length).split('-');
+    out.push({
+      key,
+      identityExport,
+      savedAt: Number(timestamp) || 0,
+      commitment: importVotingIdentity(identityExport)?.commitment ?? null
+    });
+  }
+  // Keys embed `<epochMs>-<sequence>`, so lexicographic order is newest-first.
+  return out.sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : 0));
+}
+
+/**
+ * Makes an archived voter active again. The archive entry is consumed (it
+ * becomes the active export) so the same voter never appears twice.
+ */
+export function restoreArchivedExport(electionId: string, key: string): string | null {
+  const store = storage();
+  if (!store) return null;
+  const identityExport = store.getItem(key);
+  if (!identityExport || !key.startsWith(archivePrefix(electionId))) return null;
+  const parsed = importVotingIdentity(identityExport);
+  if (!parsed) return null;
+  store.removeItem(key);
+  store.setItem(`${STORAGE_PREFIX}${electionId}`, identityExport);
+  return parsed.commitment;
+}
+
+/** Removes the active export and every archived one (tests + fresh starts). */
+export function clearElectionIdentities(electionId: string): void {
+  const store = storage();
+  if (!store) return;
+  store.removeItem(`${STORAGE_PREFIX}${electionId}`);
+  for (const entry of listArchivedExports(electionId)) store.removeItem(entry.key);
+}
+
+/** Short display form of a decimal commitment (full value stays in title). */
+export function shortCommitment(commitment: string): string {
+  return commitment.length <= 12 ? commitment : `${commitment.slice(0, 6)}…${commitment.slice(-4)}`;
+}
