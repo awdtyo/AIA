@@ -112,7 +112,14 @@
     "alreadyRegistered": "Already registered for this election — you can vote once the Voting phase opens.",
     "regClosedTitle": "Registration is closed",
     "regClosedBody": "This election is already voting, so new registrations are no longer accepted. You needed to register during the Registration phase.",
-    "stepError": "Something went wrong. Please try again."
+    "stepError": "Something went wrong. Please try again.",
+    "voterTitle": "Voters on this device",
+    "currentVoter": "Current voter",
+    "useVoter": "Use this voter",
+    "startOver": "Register a different voter",
+    "startOverConfirm": "Park the current voter on this device and start a new registration? Nothing is deleted.",
+    "startOverYes": "Yes, start over",
+    "startOverNo": "Keep current voter"
   },
   "receipt": {
     "title": "Your receipt",

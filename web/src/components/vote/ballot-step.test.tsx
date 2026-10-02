@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BallotStep } from './ballot-step';
-import { clearIdentityExport, createVotingIdentity, saveIdentityExport } from '@/lib/vote-identity';
+import { clearElectionIdentities, createVotingIdentity, saveIdentityExport } from '@/lib/vote-identity';
 import { jsonResponse, renderWithI18n } from '@/test/render';
 
 vi.mock('@/lib/vote-proof', () => ({
@@ -36,7 +36,7 @@ describe('BallotStep', () => {
   beforeEach(() => {
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
-    for (const id of ['10', '11', '12', '13', '14']) clearIdentityExport(id);
+    for (const id of ['10', '11', '12', '13', '14']) clearElectionIdentities(id);
   });
 
   afterEach(() => {

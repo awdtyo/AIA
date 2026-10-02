@@ -2,8 +2,15 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { IdentityStep, KycStep, RegisterStep } from './vote-steps';
-import { clearIdentityExport, loadIdentityExport } from '@/lib/vote-identity';
+import { IdentityStep, KycStep, RegisterStep, VoterSwitcher } from './vote-steps';
+import {
+  archiveIdentityExport,
+  clearElectionIdentities,
+  createVotingIdentity,
+  listArchivedExports,
+  loadIdentityExport,
+  saveIdentityExport
+} from '@/lib/vote-identity';
 import { jsonResponse, renderWithI18n } from '@/test/render';
 
 const fetchMock = vi.fn();
@@ -69,8 +76,7 @@ describe('KycStep', () => {
 
 describe('IdentityStep', () => {
   beforeEach(() => {
-    clearIdentityExport('7');
-    clearIdentityExport('8');
+    for (const id of ['7', '8']) clearElectionIdentities(id);
   });
 
   it('creates an identity and keeps the export on this device', async () => {
@@ -151,5 +157,59 @@ describe('RegisterStep', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Register anonymously' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('chain blew up');
+  });
+});
+
+describe('VoterSwitcher', () => {
+  beforeEach(() => {
+    for (const id of ['20', '21', '22']) clearElectionIdentities(id);
+  });
+
+  it('renders nothing when the device holds no voter', () => {
+    const { container } = renderWithI18n(
+      <VoterSwitcher activeCommitment={null} archived={[]} onUseArchived={() => undefined} onStartOver={() => undefined} />
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('switches to a parked voter', async () => {
+    const first = createVotingIdentity();
+    saveIdentityExport('20', first.identityExport);
+    archiveIdentityExport('20');
+    const archived = listArchivedExports('20');
+    expect(archived).toHaveLength(1);
+
+    const onUseArchived = vi.fn();
+    renderWithI18n(
+      <VoterSwitcher
+        activeCommitment={null}
+        archived={archived}
+        onUseArchived={onUseArchived}
+        onStartOver={() => undefined}
+      />
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Voters on this device' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Use this voter' }));
+    expect(onUseArchived).toHaveBeenCalledWith(archived[0]?.key);
+  });
+
+  it('asks for confirmation before parking the current voter', async () => {
+    const onStartOver = vi.fn();
+    renderWithI18n(
+      <VoterSwitcher activeCommitment="123456789" archived={[]} onUseArchived={() => undefined} onStartOver={onStartOver} />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Register a different voter' }));
+    expect(onStartOver).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Park the current voter/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Keep current voter' }));
+    expect(onStartOver).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Register a different voter' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, start over' }));
+    expect(onStartOver).toHaveBeenCalledTimes(1);
   });
 });
