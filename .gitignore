@@ -19,6 +19,9 @@ typechain-types/
 *.log
 .DS_Store
 
+# Local-only agent instructions (kept on disk, never committed)
+AGENTS.md
+
 # Hardhat
 coverage/
 coverage.json
