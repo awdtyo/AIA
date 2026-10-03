@@ -1,4 +1,5 @@
 # AIA Vote — Aadhaar ZK-Gated Permissioned Blockchain E-Voting
+<img src="assets/banner.png" alt="banner" width="1000" />
 
 ![status](https://img.shields.io/badge/status-prototype-orange)
 ![contracts](https://img.shields.io/badge/contracts-Solidity%20%5E0.8.23-blue)
