@@ -27,6 +27,8 @@ interface PendingListProps {
   isOwner: boolean;
   elections: Map<string, ElectionContext>;
   busyId: number | null;
+  /** False until every on-chain read resolved — keeps buttons safe to click. */
+  ready: boolean;
   onApprove: (id: number) => void;
   onExecute: (id: number) => void;
 }
@@ -48,6 +50,7 @@ export function PendingTransactions({
   isOwner,
   elections,
   busyId,
+  ready,
   onApprove,
   onExecute
 }: PendingListProps) {
@@ -132,7 +135,7 @@ export function PendingTransactions({
                 <button
                   type="button"
                   className="btn-secondary"
-                  disabled={!isOwner || tx.approvedByMe || busyId === tx.id}
+                  disabled={!isOwner || !ready || tx.approvedByMe || busyId === tx.id}
                   onClick={() => request('approve', tx)}
                 >
                   {t('admin.approve')}
@@ -140,7 +143,7 @@ export function PendingTransactions({
                 <button
                   type="button"
                   className="btn-primary"
-                  disabled={!canExecute || busyId === tx.id}
+                  disabled={!ready || !canExecute || busyId === tx.id}
                   onClick={() => request('execute', tx)}
                 >
                   {t('admin.execute')}

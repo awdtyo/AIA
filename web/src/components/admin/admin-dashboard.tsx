@@ -8,10 +8,12 @@ import {
   useAccount,
   useConnect,
   useDisconnect,
+  usePublicClient,
   useReadContract,
   useReadContracts,
   useSwitchChain,
   useWaitForTransactionReceipt,
+  useWatchBlockNumber,
   useWriteContract
 } from 'wagmi';
 
@@ -21,6 +23,7 @@ import { encodeAdvancePhase, encodeCreateElection } from '@/lib/admin-tx';
 import { ELECTION_MANAGER_ADDRESS, MULTISIG_ADDRESS } from '@/lib/chain';
 import { isDemoWalletOffered } from '@/lib/demo-connector';
 import { CHAIN_ID, RPC_URL } from '@/lib/env';
+import { decodeMultisigRevert, multisigRevertMessageKey } from '@/lib/multisig-errors';
 import type { ElectionContext } from '@/lib/multisig';
 import { PendingTransactions, type PendingTx } from './pending-transactions';
 import { ProposeForms } from './propose-forms';
@@ -38,6 +41,7 @@ export function AdminDashboard() {
   const { connect, connectors, isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
+  const publicClient = usePublicClient();
 
   const [busyId, setBusyId] = useState<number | null>(null);
   const [proposing, setProposing] = useState(false);
@@ -119,8 +123,21 @@ export function AdminDashboard() {
     [txIds, txsQuery.data]
   );
 
-  const { writeContract, data: txHash, reset: resetWrite } = useWriteContract();
+  const { writeContract, data: txHash, reset: resetWrite, status: writeStatus } = useWriteContract();
   const receiptQuery = useWaitForTransactionReceipt({ hash: txHash });
+
+  // Approvals land from whichever owner signs (possibly another browser), so
+  // re-read pending transactions and the count on every new block. Without
+  // this the panel shows stale counts and lets owners send transactions that
+  // are guaranteed to revert (double-approve, early execute) — those reverted
+  // transactions are what MetaMask reports as "failed".
+  useWatchBlockNumber({
+    enabled: isConnected && !wrongNetwork,
+    onBlockNumber() {
+      void txCountQuery.refetch();
+      void txsQuery.refetch();
+    }
+  });
 
   // After each confirmed wallet transaction, refresh the on-chain reads and,
   // for proposals, announce the new transaction id from the Submitted event.
@@ -154,6 +171,26 @@ export function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [receiptQuery.status]);
 
+  // A rejected wallet prompt (or any pre-mining write error) never produces a
+  // receipt, so without this the buttons stay busy forever — and the next
+  // retry can double-approve an already-approved transaction. Clear the busy
+  // state here; only non-cancellation errors become visible failures.
+  useEffect(() => {
+    if (writeStatus !== 'error') return;
+    setBusyId(null);
+    setProposing(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [writeStatus]);
+
+  // Every action button stays disabled until all on-chain reads have resolved
+  // at least once. The threshold previously defaulted to 0 while loading,
+  // which enabled Execute on unapproved transactions — guaranteed reverts
+  // (ThresholdNotMet) that MetaMask then lists as failed.
+  const readsReady =
+    thresholdQuery.status === 'success' &&
+    txCountQuery.status === 'success' &&
+    txsQuery.status === 'success';
+
   const readError = thresholdQuery.isError || txCountQuery.isError;
   const isOwner = ownerQuery.data === true;
   const threshold = thresholdQuery.data == null ? 0 : Number(thresholdQuery.data);
@@ -170,31 +207,96 @@ export function AdminDashboard() {
     setProposing(false);
   }
 
-  function propose(target: Address, data: Hex): void {
+  function shortErrorMessage(error: unknown): string {
+    const raw = error instanceof Error ? error.message : String(error);
+    return (raw.split('\n')[0] ?? raw).slice(0, 200);
+  }
+
+  type MultisigCall =
+    | { functionName: 'submit'; args: [Address, Hex] }
+    | { functionName: 'approve'; args: [bigint] }
+    | { functionName: 'execute'; args: [bigint] };
+
+  /**
+   * Simulate the multisig call against the node before touching the wallet.
+   * Invalid calls (double-approve, early execute, non-owner submit) are
+   * explained inline with the decoded contract reason and never sent, so
+   * MetaMask can no longer collect reverted ("failed") transactions from this
+   * panel. Valid calls simulate cleanly, so MetaMask predicts success too.
+   */
+  async function sendWithPreflight(call: MultisigCall): Promise<void> {
     setTxError(null);
-    setProposing(true);
-    try {
-      writeContract({ ...multisig, functionName: 'submit', args: [target, data] });
-    } catch (error) {
-      fail(t('admin.txFailed', { message: error instanceof Error ? error.message : String(error) }));
+    if (publicClient && address) {
+      try {
+        switch (call.functionName) {
+          case 'submit':
+            await publicClient.simulateContract({
+              ...multisig,
+              account: address,
+              functionName: 'submit',
+              args: call.args
+            });
+            break;
+          case 'approve':
+            await publicClient.simulateContract({
+              ...multisig,
+              account: address,
+              functionName: 'approve',
+              args: call.args
+            });
+            break;
+          case 'execute':
+            await publicClient.simulateContract({
+              ...multisig,
+              account: address,
+              functionName: 'execute',
+              args: call.args
+            });
+            break;
+        }
+      } catch (error) {
+        const name = decodeMultisigRevert(error);
+        const message = name != null ? t(`admin.${multisigRevertMessageKey(name)}`) : shortErrorMessage(error);
+        fail(t('admin.txFailed', { message }));
+        return;
+      }
+    }
+    switch (call.functionName) {
+      case 'submit':
+        writeContract({ ...multisig, functionName: 'submit', args: call.args });
+        return;
+      case 'approve':
+        writeContract({ ...multisig, functionName: 'approve', args: call.args });
+        return;
+      case 'execute':
+        writeContract({ ...multisig, functionName: 'execute', args: call.args });
+        return;
     }
   }
 
+  function propose(target: Address, data: Hex): void {
+    if (!readsReady) return;
+    setTxError(null);
+    setProposing(true);
+    void sendWithPreflight({ functionName: 'submit', args: [target, data] });
+  }
+
   function approve(id: number): void {
-    if (!isOwner) return;
+    if (!isOwner || !readsReady) return;
     setTxError(null);
     setBusyId(id);
-    writeContract({ ...multisig, functionName: 'approve', args: [BigInt(id)] });
+    void sendWithPreflight({ functionName: 'approve', args: [BigInt(id)] });
   }
 
   function execute(id: number): void {
+    if (!readsReady) return;
     setTxError(null);
     setBusyId(id);
-    writeContract({ ...multisig, functionName: 'execute', args: [BigInt(id)] });
+    void sendWithPreflight({ functionName: 'execute', args: [BigInt(id)] });
   }
 
   function proposeCreate(constituencyId: string, candidates: string[]): void {
-    if (!isOwner) return;
+    if (!isOwner || !readsReady) return;
     const data = encodeCreateElection(constituencyId, candidates);
     const existing = txs.find(
       (tx) => !tx.executed && tx.target.toLowerCase() === ELECTION_MANAGER_ADDRESS.toLowerCase() && tx.data === data
@@ -208,7 +310,7 @@ export function AdminDashboard() {
   }
 
   function proposeAdvance(electionId: string): void {
-    if (!isOwner) return;
+    if (!isOwner || !readsReady) return;
     const data = encodeAdvancePhase(electionId);
     const existing = txs.find(
       (tx) => !tx.executed && tx.target.toLowerCase() === ELECTION_MANAGER_ADDRESS.toLowerCase() && tx.data === data
@@ -329,6 +431,7 @@ export function AdminDashboard() {
             isOwner={isOwner}
             elections={electionsById}
             busyId={busyId}
+            ready={readsReady}
             onApprove={approve}
             onExecute={execute}
           />
@@ -341,6 +444,7 @@ export function AdminDashboard() {
                   constituencyId: election.constituencyId
                 }))}
                 busy={proposing}
+                ready={readsReady}
                 notice={notice}
                 onProposeCreate={proposeCreate}
                 onProposeAdvance={proposeAdvance}
