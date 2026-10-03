@@ -511,5 +511,4 @@ Before anything resembling real use, at minimum:
 
 ## License
 
-No repo-wide license file yet; the `contracts` package declares ISC. Add one before
-any distribution beyond the hackathon.
+MIT — see [LICENSE](./LICENSE). Copyright (c) 2026 Aditya Sarkar.
