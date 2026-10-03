@@ -14,7 +14,11 @@
   }
 
   body {
-    @apply bg-white text-ink;
+    @apply bg-cream text-ink;
+    /* Warm government-document canvas with an extremely subtle chakra tile.
+       Static (no motion), baked low-alpha stroke — never harms readability. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg fill='none' stroke='%23162F5F' stroke-opacity='0.055' stroke-width='1'%3E%3Ccircle cx='140' cy='140' r='58'/%3E%3Ccircle cx='140' cy='140' r='7'/%3E%3Cpath d='M140 82v116M82 140h116M99 99l82 82M181 99l-82 82'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 280px 280px;
   }
 
   /* WCAG AA: a visible, high-contrast focus ring everywhere, including phones. */
@@ -50,7 +54,33 @@
   }
 
   .card {
-    @apply rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5;
+    @apply rounded-xl border border-cream-border bg-white p-4 shadow-[0_1px_4px_rgba(16,42,86,0.06)] sm:p-5;
+  }
+
+  /* Civic section eyebrow: small gold-capped label above section headings. */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-gold-700;
+  }
+
+  .eyebrow::before {
+    content: '';
+    @apply inline-block h-px w-6 bg-gold-500;
+  }
+
+  /* Official emblem artwork is black line-art: this filter renders it in a
+     restrained gold so it stands out on the navy hero. */
+  .emblem-gold {
+    filter: invert(74%) sepia(58%) saturate(850%) hue-rotate(-12deg) brightness(1.04);
+  }
+
+  /* Consistent page header for vote / receipt / explorer / turnout / admin. */
+  .page-hero {
+    @apply overflow-hidden rounded-2xl border border-cream-border bg-white p-5 shadow-[0_1px_4px_rgba(16,42,86,0.06)] sm:p-6;
+    border-top: 4px solid theme('colors.navy.900');
+  }
+
+  .page-hero h1 {
+    @apply text-2xl font-bold text-navy-900 sm:text-3xl;
   }
 
   .btn {
@@ -81,5 +111,118 @@
 
   .prose-civic {
     @apply text-base leading-relaxed text-ink-muted;
+  }
+
+  /* Monospace hash values: readable, wrapping, never overflowing on mobile. */
+  .hash-value {
+    @apply break-all font-mono text-[13px] leading-relaxed text-navy-900;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+
+  /* Frosted sticky header: readable, not excessively transparent. */
+  .header-frosted {
+    @apply sticky top-0 z-40 border-b border-paleblue-border bg-paleblue/95 shadow-[0_1px_12px_rgba(12,19,56,0.08)];
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+}
+
+@layer utilities {
+  /* Subtle civic micro-animations. Short, non-infinite (except the live dot),
+     and globally disabled under prefers-reduced-motion above. */
+  @keyframes civic-pulse-soft {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 0.92;
+    }
+  }
+
+  @keyframes civic-check-pop {
+    0% {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes civic-live-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    80%,
+    100% {
+      transform: scale(2.1);
+      opacity: 0;
+    }
+  }
+
+  @keyframes civic-draw-link {
+    0% {
+      stroke-dashoffset: 24;
+      opacity: 0.4;
+    }
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+  }
+
+  .animate-civic-pulse-soft {
+    animation: civic-pulse-soft 2.4s ease-in-out 2;
+  }
+
+  .animate-civic-check {
+    animation: civic-check-pop 0.35s ease-out both;
+  }
+
+  .animate-civic-draw {
+    stroke-dasharray: 24;
+    animation: civic-draw-link 1.6s ease-out 1 both;
+  }
+
+  /* Skeleton shimmer for loading cards. Subtle opacity pulse only, and the
+     global prefers-reduced-motion rule above already freezes it. */
+  @keyframes civic-shimmer {
+    0%,
+    100% {
+      opacity: 0.45;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+
+  .skeleton {
+    @apply rounded bg-slate-200;
+    animation: civic-shimmer 1.6s ease-in-out infinite;
+  }
+
+  .live-dot {
+    @apply relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500;
+  }
+
+  .live-dot::after {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-green-500;
+    animation: civic-live-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .feature-card-icon {
+    transition: transform 0.2s ease-out;
+  }
+
+  .group\/feature:hover .feature-card-icon {
+    transform: scale(1.07);
   }
 }

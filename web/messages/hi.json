@@ -19,14 +19,21 @@
     "voted": "डाले गए मत",
     "candidates": "उम्मीदवार",
     "electionId": "चुनाव आईडी",
-    "notFound": "आप जो खोज रहे थे वह नहीं मिला।"
+    "notFound": "आप जो खोज रहे थे वह नहीं मिला।",
+    "close": "Close",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download"
   },
   "nav": {
     "primaryLabel": "मुख्य",
     "home": "होम",
     "receipt": "मेरी रसीद",
     "explorer": "एक्सप्लोरर",
-    "admin": "प्रशासन"
+    "admin": "प्रशासन",
+    "faqs": "FAQs",
+    "about": "About",
+    "help": "Help"
   },
   "phases": {
     "setup": "तैयारी",
@@ -49,7 +56,11 @@
       "chainTitle": "आपका मत दर्ज रहता है",
       "chainBody": "आपने जिस उम्मीदवार को चुया, उसका नाम सार्वजनिक रूप से दर्ज होता है। आपकी पहचान उससे नहीं जोड़ी जा सकती।",
       "auditTitle": "गिनती की जाँच होती है",
-      "auditBody": "इलेक्ट्रॉनिक मतदान केंद्रों के स्कैन की तुलना स्वतः ही बही की गणना से की जाती है, और कोई भी अंतर प्रकाशित किया जाता है।"
+      "auditBody": "इलेक्ट्रॉनिक मतदान केंद्रों के स्कैन की तुलना स्वतः ही बही की गणना से की जाती है, और कोई भी अंतर प्रकाशित किया जाता है।",
+      "proofUnder": "Semaphore creates an anonymous identity on your device. A zero-knowledge proof proves eligibility without revealing Aadhaar or name.",
+      "nullifierUnder": "A single-use nullifier is bound to this election (scope = electionId). It prevents double voting and is unlinkable to your identity commitment.",
+      "chainUnder": "The relayed Semaphore proof is verified on-chain. The ledger stores only the candidate index, proof and nullifier — never identity data.",
+      "auditUnder": "Anyone can recount public votes and compare booth EVM counts via the audit API. Differences are published as a shadow audit."
     },
     "electionsTitle": "चुनाव",
     "exploreElections": "सक्रिय चुनाव देखें",
@@ -57,13 +68,27 @@
     "electionsError": "चुनाव की सूची लोड नहीं हो सकी। कृपया जाँचें कि बैकएंड चल रहा है।",
     "electionsEmpty": "अभी तक कोई चुनाव प्रकाशित नहीं किया गया है।",
     "viewDetails": "विवरण देखें",
-    "castVote": "अपना मत डालें"
+    "castVote": "अपना मत डालें",
+    "heroBadge": "Secure · Transparent · Verifiable",
+    "trustLine": "Built for public trust — every vote is checkable, no identity is exposed.",
+    "underHood": "Under the hood",
+    "underHoodHide": "Hide technical details",
+    "receiptTitle": "Keep your proof",
+    "receiptBody": "After voting you get a private receipt. Anyone can verify the count — nobody can link a vote back to you.",
+    "receiptCta": "How receipts work",
+    "motto": "सत्यमेव जयते",
+    "emblemAlt": "National Emblem of India"
   },
   "electionCard": {
     "constituency": "निर्वाचन क्षेत्र",
     "candidateCount": "{count, plural, =0 {कोई उम्मीदवार नहीं} one {# उम्मीदवार} other {# उम्मीदवार}}",
     "turnoutValue": "{pct}% मतदान",
-    "turnoutUnavailable": "मतदान प्रतिशत अभी उपलब्ध नहीं है"
+    "turnoutUnavailable": "मतदान प्रतिशत अभी उपलब्ध नहीं है",
+    "live": "Live",
+    "winnerLabel": "Winner",
+    "distributionLabel": "Vote distribution",
+    "distributionSummary": "Vote share per candidate.",
+    "votesLabel": "{count, plural, one {# vote} other {# votes}}"
   },
   "vote": {
     "title": "अपना मत डालें",
@@ -113,7 +138,20 @@
     "alreadyRegistered": "इस चुनाव के लिए पहले से पंजीकृत — मतदान चरण शुरू होने पर आप मत डाल सकते हैं।",
     "regClosedTitle": "पंजीकरण बंद है",
     "regClosedBody": "इस चुनाव में मतदान चल रहा है, इसलिए नए पंजीकरण स्वीकार नहीं होंगे। आपको पंजीकरण चरण में पंजीकरण करना था।",
-    "stepError": "कुछ गलत हुआ। कृपया पुनः प्रयास करें।"
+    "stepError": "कुछ गलत हुआ। कृपया पुनः प्रयास करें।",
+    "txTitle": "Casting your vote",
+    "txSelected": "Vote selected",
+    "txSelectedDesc": "Your choice is locked in on this device only.",
+    "txProof": "Generating ZK proof",
+    "txProofDesc": "Creating a private proof that your vote is valid.",
+    "txLedger": "Writing to ledger",
+    "txLedgerDesc": "Submitting the verified vote to the blockchain.",
+    "txConfirmed": "Vote confirmed",
+    "txConfirmedDesc": "Your vote has been recorded and can be independently verified.",
+    "txClose": "Close",
+    "txRetry": "Try again",
+    "txErrorTitle": "Something went wrong",
+    "txCancelVote": "Back to ballot"
   },
   "receipt": {
     "title": "आपकी रसीद",
@@ -126,7 +164,17 @@
     "voteHashLabel": "मत हैश",
     "txHashLabel": "लेनदेन",
     "blockLabel": "ब्लॉक",
-    "timeLabel": "समय"
+    "timeLabel": "समय",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download receipt",
+    "downloadHint": "Saves vote hash, transaction, nullifier and verification link. Never contains private keys.",
+    "qrLabel": "Verification QR",
+    "qrHint": "Scan to open this receipt for verification.",
+    "verifyUrlLabel": "Verification link",
+    "premiumSubtitle": "This is your proof that the vote was recorded and can be independently verified.",
+    "verifiedBadge": "Recorded on ledger",
+    "showNullifier": "Show nullifier"
   },
   "explorer": {
     "title": "सार्वजनिक एक्सप्लोरर",
@@ -249,5 +297,32 @@
     "linksTitle": "लिंक",
     "builtFor": "भारत निर्वाचन आयोग के लिए प्रोटोटाइप के रूप में बनाया गया।",
     "copyright": "© {year} AIA Vote. केवल प्रदर्शन हेतु।"
+  },
+  "brand": {
+    "title": "भारत चुनाव पोर्टल",
+    "subtitle": "AADHAAR E-VOTING PORTAL"
+  },
+  "trust": {
+    "label": "Trust indicators",
+    "secure": "Secure",
+    "transparent": "Transparent",
+    "verifiable": "Verifiable"
+  },
+  "info": {
+    "faqsTitle": "Frequently Asked Questions",
+    "faqQ1": "Is my vote truly secret?",
+    "faqA1": "Yes. We use Zero-Knowledge (ZK) proofs. The system verifies your eligibility to vote, but your identity is never mathematically linked to the candidate you choose.",
+    "faqQ2": "How do I know my vote was counted?",
+    "faqA2": "After voting, you receive a cryptographic receipt. You can enter this receipt in the Explorer tab to independently verify your vote on the public ledger.",
+    "faqQ3": "What if I lose my internet connection while voting?",
+    "faqA3": "Your vote is only recorded once the smart contract transaction is finalized. You can safely reload the portal and check your status.",
+    "aboutTitle": "About the Portal",
+    "aboutBody": "The e-Voting Portal is a next-generation democratic tool. Built on a permissioned blockchain, it ensures that elections are secure, transparent, and fully verifiable by the public, while maintaining absolute voter anonymity through cryptographic proofs.",
+    "helpTitle": "Need Assistance?",
+    "helpBefore": "If you are experiencing technical difficulties or your transaction is failing, please ensure you have a stable internet connection and that your session has not expired. For further support, contact the Election Helpdesk at ",
+    "helpPhone": "1800-111-XXXX",
+    "helpMid": " or email ",
+    "helpEmail": "techsupport@evoting.gov.in",
+    "helpAfter": "."
   }
 }
