@@ -233,6 +233,13 @@
     "txAdvancePhaseBare": "Advance election {election} to the next phase.",
     "txUnknown": "Raw call to {target}.",
     "txFailed": "The transaction failed: {message}",
+    "msNotOwner": "This wallet is not a multi-sig owner, so it cannot sign this transaction.",
+    "msAlreadyApproved": "You have already approved this transaction. A second owner still needs to approve it.",
+    "msAlreadyExecuted": "This transaction was already executed.",
+    "msThresholdNotMet": "Not enough approvals yet. Wait for more owners to approve before executing.",
+    "msTxNotFound": "This transaction does not exist on the multi-sig.",
+    "msExecutionFailed": "The election call inside this transaction would fail (for example, the phase already changed).",
+    "msInvalidSetup": "Invalid multi-sig setup parameters.",
     "noNode": "Could not reach the local chain at {url}. Start Hardhat with `npx hardhat node` first.",
     "needsElection": "Enter a constituency and at least two candidates.",
     "needsElectionId": "Enter an election ID."

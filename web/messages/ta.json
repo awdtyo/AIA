@@ -233,6 +233,13 @@
     "txAdvancePhaseBare": "{election} தேர்தலை அடுத்த கட்டத்திற்கு முன்னேற்றுக.",
     "txUnknown": "{target}-க்கு நேரடி அழைப்பு.",
     "txFailed": "பரிவர்த்தனை தோல்வியடைந்தது: {message}",
+    "msNotOwner": "This wallet is not a multi-sig owner, so it cannot sign this transaction.",
+    "msAlreadyApproved": "You have already approved this transaction. A second owner still needs to approve it.",
+    "msAlreadyExecuted": "This transaction was already executed.",
+    "msThresholdNotMet": "Not enough approvals yet. Wait for more owners to approve before executing.",
+    "msTxNotFound": "This transaction does not exist on the multi-sig.",
+    "msExecutionFailed": "The election call inside this transaction would fail (for example, the phase already changed).",
+    "msInvalidSetup": "Invalid multi-sig setup parameters.",
     "noNode": "உள்ளூர் சங்கிலி {url}-ஐ அடைய முடியவில்லை. முதலில் `npx hardhat node` இயக்கவும்.",
     "needsElection": "தொகுதி மற்றும் குறைந்தது இரண்டு வேட்பாளர்களை உள்ளிடுக.",
     "needsElectionId": "தேர்தல் ID-ஐ உள்ளிடுக."

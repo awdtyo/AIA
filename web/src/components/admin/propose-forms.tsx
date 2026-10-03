@@ -6,6 +6,8 @@ import { useTranslations } from 'next-intl';
 interface ProposeFormsProps {
   elections: { id: string; constituencyId: string }[];
   busy: boolean;
+  /** False until every on-chain read resolved — keeps buttons safe to click. */
+  ready: boolean;
   notice: string | null;
   onProposeCreate: (constituencyId: string, candidates: string[]) => void;
   onProposeAdvance: (electionId: string) => void;
@@ -16,7 +18,7 @@ interface ProposeFormsProps {
  * candidates; advancing a phase asks for confirmation because on-chain phase
  * changes cannot be undone.
  */
-export function ProposeForms({ elections, busy, notice, onProposeCreate, onProposeAdvance }: ProposeFormsProps) {
+export function ProposeForms({ elections, busy, ready, notice, onProposeCreate, onProposeAdvance }: ProposeFormsProps) {
   const t = useTranslations();
   const [constituency, setConstituency] = useState('');
   const [candidates, setCandidates] = useState('');
@@ -76,7 +78,7 @@ export function ProposeForms({ elections, busy, notice, onProposeCreate, onPropo
           onChange={(event) => setCandidates(event.target.value)}
           placeholder={t('admin.candidatesPlaceholder')}
         />
-        <button type="button" className="btn-primary mt-3" disabled={busy} onClick={proposeCreate}>
+        <button type="button" className="btn-primary mt-3" disabled={busy || !ready} onClick={proposeCreate}>
           {t('admin.proposeCreate')}
         </button>
       </section>
@@ -104,7 +106,7 @@ export function ProposeForms({ elections, busy, notice, onProposeCreate, onPropo
           ))}
         </datalist>
         <div>
-          <button type="button" className="btn-primary mt-3" disabled={busy} onClick={proposeAdvance}>
+          <button type="button" className="btn-primary mt-3" disabled={busy || !ready} onClick={proposeAdvance}>
             {t('admin.advanceButton')}
           </button>
         </div>

@@ -233,6 +233,13 @@
     "txAdvancePhaseBare": "{election} নির্বাচন পরের পর্যায়ে এগিয়ে নিন।",
     "txUnknown": "{target}-এ সরাসরি কল।",
     "txFailed": "লেনদেন ব্যর্থ হয়েছে: {message}",
+    "msNotOwner": "This wallet is not a multi-sig owner, so it cannot sign this transaction.",
+    "msAlreadyApproved": "You have already approved this transaction. A second owner still needs to approve it.",
+    "msAlreadyExecuted": "This transaction was already executed.",
+    "msThresholdNotMet": "Not enough approvals yet. Wait for more owners to approve before executing.",
+    "msTxNotFound": "This transaction does not exist on the multi-sig.",
+    "msExecutionFailed": "The election call inside this transaction would fail (for example, the phase already changed).",
+    "msInvalidSetup": "Invalid multi-sig setup parameters.",
     "noNode": "স্থানীয় চেইন {url}-এ পৌঁছানো যায়নি। আগে `npx hardhat node` চালান।",
     "needsElection": "নির্বাচনী এলাকা এবং কমপক্ষে দুজন প্রার্থী লিখুন।",
     "needsElectionId": "নির্বাচন ID লিখুন।"
